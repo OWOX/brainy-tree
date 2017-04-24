@@ -1,0 +1,29 @@
+{
+  "extends": "google",
+  "plugins": [ "html" ],
+  "rules":  {
+    "linebreak-style": "off",
+    "new-cap": ["error", {
+      "capIsNewExceptions": ["Polymer"],
+      "newIsCapExceptionPattern": "this.ctor"
+    }],
+    "max-len": ["error", 120, 2, {
+      "ignoreComments": true,
+      "ignoreUrls": true
+    }]
+  },
+  "env": {
+    "browser": true,
+    "mocha": true
+  },
+  "globals": {
+    "Polymer": true,
+    "HTMLImports": true,
+    "Brainy": true,
+    "WCT": true,
+    "expect": true,
+    "fixture": true,
+    "flush": true,
+    "sinon": true
+  }
+}

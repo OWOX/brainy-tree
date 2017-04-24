@@ -1,0 +1,173 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../iron-collapse/iron-collapse.html">
+
+<dom-module id="brainy-tree-node">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      :host ::content iron-collapse {
+        padding-left: 1em;
+      }
+
+      :host ::content #content {
+        position: relative;
+        margin: .1rem 0 .2rem;
+      }
+    </style>
+
+    <content></content>
+
+  </template>
+  <script>
+    (function() {
+      'use strict';
+
+      Polymer({
+        is: 'brainy-tree-node',
+
+        behaviors: [
+          Polymer.Templatizer
+        ],
+
+        properties: {
+          data: Object,
+          _children: {
+            type: Array
+          },
+          opened: {
+            type: Boolean,
+            value: false,
+            observer: '_openedChanged'
+          },
+          /**
+           * Template used to render each tree node.
+           */
+          template: Object
+        },
+
+        observers: [
+          '_renderNodeContent(data)'
+        ],
+
+        toggle: function() {
+          if (this._updated) {
+            this.opened = !this.opened;
+          } else {
+            this._fetchChildren();
+            this.opened = true;
+          }
+        },
+
+        open: function() {
+          this.opened = true;
+          if (!this._updated) {
+            return this._fetchChildren();
+          }
+          return Promise.resolve();
+        },
+
+        close: function() {
+          this.opened = false;
+        },
+
+        _renderNodeContent: function() {
+          if (this.template) {
+            if (this._instance) {
+              // re-render if data changes
+              this._teardownInstance();
+              this._fetchChildren();
+            }
+            var data = this.data;
+            // templatize must be called once before stamp is called
+            this.templatize(this.template);
+            // stamp and prepare bindings
+            this._instance = this.stamp({});
+            this._instance.item = data;
+            this._instance.opened = this.opened;
+            this._instance.isLeaf = !data.children || data.children.length === 0;
+            this.dataset.id = data.id;
+            var content = document.createElement('div');
+            content.id = 'content';
+            Polymer.dom(content).appendChild(this._instance.root);
+            Polymer.dom(this).appendChild(content);
+            var children = document.createElement('iron-collapse');
+            children.id = 'children';
+            children.opened = this.opened;
+            children.noAnimation = 'true';
+            Polymer.dom(this).appendChild(children);
+            Polymer.dom.flush();
+            this._setupToggleListener();
+          }
+        },
+
+        _renderChildNodes: function() {
+          if (this.template) {
+            return new Promise(function(resolve) {
+              // clear <iron-collapse> content in case we are re-rendering
+              var children = Polymer.dom(this).querySelector('#children');
+              while (children.hasChildNodes()) {
+                children.removeChild(children.lastChild);
+              }
+              var items = this._children || [];
+              for (var i = 0; i < items.length; i++) {
+                var el = document.createElement('brainy-tree-node');
+                el.controller = this.controller;
+                el.template = this.template;
+                el.dataHost = this._instance._rootDataHost;
+                el.data = items[i];
+                children.appendChild(el);
+              }
+              resolve();
+            }.bind(this));
+          }
+        },
+
+        _fetchChildren: function() {
+          this._children = this.data.children;
+          this._updated = true;
+          return this._renderChildNodes();
+        },
+
+        _setupToggleListener: function() {
+          this._flushTemplates();
+          var toggleEls = Polymer.dom(this).querySelector('#content').querySelectorAll('[toggle]');
+          for (var i = 0; i < toggleEls.length; i++) {
+            this.listen(toggleEls[i], 'tap', 'toggle');
+          }
+        },
+
+        // Implements extension point from Templatizer mixin
+        // Called as side-effect of a host property change, responsible for
+        // notifying parent.<prop> path change on instance
+        _forwardParentProp: function(prop, value) {
+          if (this._instance) {
+            this._instance[prop] = value;
+          }
+        },
+
+        _teardownInstance: function() {
+          var children = this._instance._children;
+          if (children && children.length) {
+            var parent = Polymer.dom(Polymer.dom(children[0]).parentNode);
+            for (var i = 0; i < children.length; i++) {
+              parent.removeChild(children[i]);
+            }
+          }
+          this._instance = null;
+          this._updated = false;
+        },
+
+        _openedChanged: function() {
+          if (this._instance) {
+            Polymer.dom(this).querySelector('#children').opened = this.opened;
+            this._instance.notifyPath('opened', this.opened);
+            this._setupToggleListener();
+          }
+        }
+      });
+    })();
+  </script>
+</dom-module>

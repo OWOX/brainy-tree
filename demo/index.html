@@ -1,0 +1,85 @@
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>brainy-tree Demo</title>
+  <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+  <link rel="import" href="../../polymer/polymer.html">
+  <link rel="import" href="../../paper-icon-button/paper-icon-button.html">
+  <link rel="import" href="../../paper-input/paper-input.html">
+  <link rel="import" href="../../iron-icon/iron-icon.html">
+  <link rel="import" href="../../iron-icons/hardware-icons.html">
+  <link rel="import" href="../../iron-icons/iron-icons.html">
+  <link rel="import" href="../../iron-demo-helpers/demo-snippet.html">
+  <link rel="import" href="../../iron-demo-helpers/demo-pages-shared-styles.html">
+  <link rel="import" href="../brainy-tree.html">
+  <script src="data.js"></script>
+</head>
+<body unresolved>
+  <style is="custom-style" include="demo-pages-shared-styles">
+    [toggle] {
+      cursor: pointer;
+    }
+
+    .centered {
+      max-width: 800px;
+    }
+  </style>
+
+  <div class="centered">
+    <h4>Adding and deleting nodes</h4>
+    <demo-snippet>
+      <template>
+        <template is="dom-bind">
+          <brainy-tree data="[[data]]">
+            <template>
+              <!-- do not show expand icon for leaf nodes -->
+              <span hidden$="[[isLeaf]]">
+                <template is="dom-if" if="[[!opened]]">
+                  <iron-icon icon="hardware:keyboard-arrow-right" toggle></iron-icon>
+                </template>
+                <template is="dom-if" if="[[opened]]">
+                  <iron-icon icon="hardware:keyboard-arrow-down" toggle></iron-icon>
+                </template>
+              </span>
+              <b>[[item.name]]</b>
+              <!-- do not show remove icon for root node, which has ID "0" -->
+              <paper-icon-button icon="clear" hidden$="[[!item.id]]" on-tap="_onDeleteTap"></paper-icon-button>
+              <!-- only show input for leaf nodes -->
+              <paper-input value="{{item.name}}" hidden$="[[!isLeaf]]"></paper-input>
+            </template>
+          </brainy-tree>
+        </template>
+        <script>
+          (function() {
+            'use strict';
+
+            document.addEventListener('WebComponentsReady', function() {
+              var scope = document.querySelector('template[is="dom-bind"]');
+              var tree = document.querySelector('brainy-tree');
+              scope.data = window.demoData;
+              scope._onDeleteTap = function(e) {
+                // get tree node from where delete was called
+                var node = e.model.dataHost;
+                var id = node.dataset.id;
+
+                // get parent node
+                var parent = tree.getParentById(id);
+
+                // get path to given node
+                var path = tree.getPathById('data', id);
+
+                // get index for given node
+                var index = tree.getChildNodeIndexById(parent, id);
+
+                // remove that node in a data-binding-aware way
+                scope.splice(path, index, 1);
+              };
+            });
+          })();
+        </script>
+      </template>
+    </demo-snippet>
+  </div>
+</body>
+</html>
