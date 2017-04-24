@@ -18,6 +18,11 @@ A fork of [nuxeo-tree](https://www.webcomponents.org/element/nuxeo/nuxeo-ui-elem
     <link rel="import" href="../iron-icons/iron-icons.html">
     <link rel="import" href="brainy-tree.html">
     <script src="demo/data.js"></script>
+    <style is="custom-style">
+      [toggle] {
+        cursor: pointer;
+      }
+    </style>
     <div>
       <template is="dom-bind">
         <next-code-block></next-code-block>
