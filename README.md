@@ -1,3 +1,5 @@
+[![Published on webcomponents.org](https://img.shields.io/badge/webcomponents.org-published-blue.svg)](https://www.webcomponents.org/element/OWOX/brainy-tree)
+
 _[Demo and API docs](https://owox.github.io/brainy-tree/)_
 
 # &lt;brainy-tree&gt;
