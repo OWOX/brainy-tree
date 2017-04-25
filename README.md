@@ -73,8 +73,8 @@ A fork of [nuxeo-tree](https://www.webcomponents.org/element/nuxeo/nuxeo-ui-elem
       </template>
     </span>
     <b>[[item.name]]</b>
-    <!-- do not show remove icon for root node, which has ID "0" -->
-    <paper-icon-button icon="clear" hidden$="[[!item.id]]" on-tap="_onDeleteTap"></paper-icon-button>
+    <!-- do not show remove icon for root node -->
+    <paper-icon-button icon="clear" hidden$="[[isRoot]]" on-tap="_onDeleteTap"></paper-icon-button>
     <!-- only show input for leaf nodes -->
     <paper-input value="{{item.name}}" hidden$="[[!isLeaf]]"></paper-input>
   </template>
@@ -82,7 +82,18 @@ A fork of [nuxeo-tree](https://www.webcomponents.org/element/nuxeo/nuxeo-ui-elem
 ```
 
 ## Template model
-The live demo above uses the following `data` model:
+
+Tree node template is bound to template model of the following structure:
+```js
+{
+  item: {},        // data for given node
+  isRoot: false,   // true if node is a tree root
+  isLeaf: false,   // true if node does not have children
+  opened: false    // true if node has been toggled to opened state
+}
+```
+
+For example, the live demo above uses the following `data` object:
 
 ### data.json
 ```json
@@ -115,4 +126,4 @@ The live demo above uses the following `data` model:
 - The `data` property specifies the model of a tree node
 - The attribute `[toggle]` can be used to toggle a node
 - State management methods making easy opening branches
-- Numeric ID system based on depth and children count 
+- Tree node ID system based on depth and children count 

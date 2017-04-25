@@ -87,6 +87,7 @@
             this._instance.item = data;
             this._instance.opened = this.opened;
             this._instance.isLeaf = !data.children || data.children.length === 0;
+            this._instance.isRoot = data.id === Brainy.Tree.ROOT_ID;
             this.dataset.id = data.id;
             var content = document.createElement('div');
             content.id = 'content';

@@ -11,11 +11,21 @@ An element to display a tree.
 - The `data` property specifies the model of a tree node
 - The attribute `[toggle]` can be used to toggle a node
 - State management methods making easy opening branches
-- Numeric ID system based on depth and children count
-
+- Tree node ID system based on depth and children count
 
 ### Template model
-Given the following `data` array:
+
+Tree node template is bound to template model of the following structure:
+```js
+{
+  item: {},        // data for given node
+  isRoot: false,   // true if node is a tree root
+  isLeaf: false,   // true if node does not have children
+  opened: false    // true if node has been toggled to opened state
+}
+```
+
+For example, given the following `data` object:
 
 #### data.json
 ```json
@@ -41,9 +51,7 @@ Given the following `data` array:
   ]
 }
 ```
-The following code would render the tree (note the `name` property is bound from the model
-object provided to the template scope, and there are also other properties such as `opened`
-and `isLeaf` which are added to the binding scope):
+The following code would render the tree:
 ```html
 <brainy-tree data="[[data]]">
   <template>
@@ -75,11 +83,14 @@ and `isLeaf` which are added to the binding scope):
 
   </template>
   <script>
+    var Brainy = window.Brainy || {};
+    Brainy.Tree = Brainy.Tree || {};
+
     (function() {
       'use strict';
 
       var DELIMITER = '_';
-      var ROOT_ID = '0';
+      Brainy.Tree.ROOT_ID = '0';
 
       /**
        * Recursively walks through tree nodes ans sets IDs.
@@ -88,10 +99,10 @@ and `isLeaf` which are added to the binding scope):
        *  - index of a given node in it's parent `children` array
        *
        * @param {object} data - a data to process
-       * @param {string} index - an index to start from
+       * @param {?string} index - an index to start from
        */
       function indexData(data, index) {
-        index = index || ROOT_ID;
+        index = index || Brainy.Tree.ROOT_ID;
         data.id = index;
         var ci;
         var i;
@@ -100,7 +111,7 @@ and `isLeaf` which are added to the binding scope):
         if (children) {
           for (i = 0; i < children.length; i++) {
             ci = i + 1;
-            j = index === ROOT_ID ? ci.toString() : index + DELIMITER + ci;
+            j = index === Brainy.Tree.ROOT_ID ? ci.toString() : index + DELIMITER + ci;
             data.children[i].id = j;
             indexData(data.children[i], j);
           }
@@ -159,11 +170,11 @@ and `isLeaf` which are added to the binding scope):
               Polymer.dom(this).removeChild(this._root);
             }
             this._root = document.createElement('brainy-tree-node');
-            this._root.id = 'root';
             this._root.dataHost = this.dataHost;
             this._root._template = this._template;
             this._root.data = data;
-            this._root.dataset.id = ROOT_ID;
+            this._root.dataset.id = Brainy.Tree.ROOT_ID;
+            this._root.isRoot = true;
             Polymer.dom(this).appendChild(this._root);
             this._root.open().then(function() {
               this.restoreOpenedState(state);
@@ -245,8 +256,8 @@ and `isLeaf` which are added to the binding scope):
           var arr = id.split(DELIMITER);
           var len = arr.length;
           // check for root node
-          if (id !== ROOT_ID) {
-            var parentId = len > 1 ? arr.slice(0, len - 1).join(DELIMITER) : ROOT_ID;
+          if (id !== Brainy.Tree.ROOT_ID) {
+            var parentId = len > 1 ? arr.slice(0, len - 1).join(DELIMITER) : Brainy.Tree.ROOT_ID;
             parent = parentId === 0 ? this._indexedData : this.getNodeById(parentId);
           }
           return parent;
@@ -283,10 +294,10 @@ and `isLeaf` which are added to the binding scope):
           if (!root) {
             return null;
           }
-          var id = node ? node.id : ROOT_ID;
+          var id = node ? node.id : Brainy.Tree.ROOT_ID;
           var path = '';
           var result;
-          if (id !== ROOT_ID) {
+          if (id !== Brainy.Tree.ROOT_ID) {
             path = id
               .split(DELIMITER)
               .map(function(n) {

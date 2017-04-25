@@ -44,7 +44,7 @@
               </span>
               <b>[[item.name]]</b>
               <!-- do not show remove icon for root node, which has ID "0" -->
-              <paper-icon-button icon="clear" hidden$="[[!item.id]]" on-tap="_onDeleteTap"></paper-icon-button>
+              <paper-icon-button icon="clear" hidden$="[[isRoot]]" on-tap="_onDeleteTap"></paper-icon-button>
               <paper-icon-button icon="add" on-tap="_onAddTap"></paper-icon-button>
               <!-- only show input for leaf nodes -->
               <paper-input value="{{item.name}}" hidden$="[[!isLeaf]]"></paper-input>
