@@ -81,8 +81,38 @@ A fork of [nuxeo-tree](https://www.webcomponents.org/element/nuxeo/nuxeo-ui-elem
 </brainy-tree>
 ```
 
+## Template model
+The live demo above uses the following `data` model:
+
+### data.json
+```json
+{
+  "name": "root",
+  "children": [
+    {
+      "name": "a",
+      "children": [
+        {
+          "name": "c",
+          "children": [
+            { "name": "foo" },
+            { "name": "bar", "children": [{ "name": "baz" }] }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "b",
+      "children": [{ "name": "bee" }]
+    }
+  ]
+}
+```
+
 ## Features
 - Collapsible tree re-rendering itself on outside data mutations
-- The attribute `[toggle]` useful to toggle a node between opened and closed
+- The template represents the DOM to create for the nodes
+- The `data` property specifies the model of a tree node
+- The attribute `[toggle]` can be used to toggle a node
 - State management methods making easy opening branches
 - Numeric ID system based on depth and children count 
