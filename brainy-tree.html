@@ -5,6 +5,61 @@
 <!--
 An element to display a tree.
 
+### Features
+- Collapsible tree re-rendering itself on outside data mutations
+- The template represents the DOM to create for the nodes
+- The `data` property specifies the model of a tree node
+- The attribute `[toggle]` can be used to toggle a node
+- State management methods making easy opening branches
+- Numeric ID system based on depth and children count
+
+
+### Template model
+Given the following `data` array:
+
+#### data.json
+```json
+{
+  "name": "root",
+  "children": [
+    {
+      "name": "a",
+      "children": [
+        {
+          "name": "c",
+          "children": [
+            { "name": "foo" },
+            { "name": "bar", "children": [{ "name": "baz" }] }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "b",
+      "children": [{ "name": "bee" }]
+    }
+  ]
+}
+```
+The following code would render the tree (note the `name` property is bound from the model
+object provided to the template scope, and there are also other properties such as `opened`
+and `isLeaf` which are added to the binding scope):
+```html
+<brainy-tree data="[[data]]">
+  <template>
+    <template is="dom-if" if="[[!opened]]">
+      <iron-icon icon="hardware:keyboard-arrow-right" toggle></iron-icon>
+    </template>
+    <template is="dom-if" if="[[opened]]">
+      <iron-icon icon="hardware:keyboard-arrow-down" toggle></iron-icon>
+    </template>
+    <span select>My name is: [[item.name]]</span>
+    <span>Am I a leaf? [[isLeaf]]</span>
+  </template>
+</brainy-tree>
+```
+
+@group Brainy Elements
 @element brainy-tree
 @demo demo/index.html
 -->
@@ -23,6 +78,9 @@ An element to display a tree.
     (function() {
       'use strict';
 
+      var DELIMITER = '_';
+      var ROOT_ID = '0';
+
       /**
        * Recursively walks through tree nodes ans sets IDs.
        * Root node ID is 0. For child nodes, ID is based:
@@ -30,9 +88,10 @@ An element to display a tree.
        *  - index of a given node in it's parent `children` array
        *
        * @param {object} data - a data to process
-       * @param {number} index - an index to start from
+       * @param {string} index - an index to start from
        */
       function indexData(data, index) {
+        index = index || ROOT_ID;
         data.id = index;
         var ci;
         var i;
@@ -41,7 +100,7 @@ An element to display a tree.
         if (children) {
           for (i = 0; i < children.length; i++) {
             ci = i + 1;
-            j = index > 0 ? Number(index.toString() + ci.toString()) : ci;
+            j = index === ROOT_ID ? ci.toString() : index + DELIMITER + ci;
             data.children[i].id = j;
             indexData(data.children[i], j);
           }
@@ -52,12 +111,12 @@ An element to display a tree.
        * Recursively walks through tree nodes ans finds node with a given ID.
        *
        * @param {object} node - a node to start from
-       * @param {number} id - an ID to search
+       * @param {string} id - an ID to search
        * @return {?object} - a node with a given ID
        */
       function searchTree(node, id) {
         var children = node.children;
-        if (node.id.toString() === id.toString()) {
+        if (node.id === id) {
           return node;
         } else if (children && children.length) {
           var i;
@@ -102,9 +161,9 @@ An element to display a tree.
             this._root = document.createElement('brainy-tree-node');
             this._root.id = 'root';
             this._root.dataHost = this.dataHost;
-            this._root.template = this._template;
+            this._root._template = this._template;
             this._root.data = data;
-            this._root.dataset.id = 0;
+            this._root.dataset.id = ROOT_ID;
             Polymer.dom(this).appendChild(this._root);
             this._root.open().then(function() {
               this.restoreOpenedState(state);
@@ -115,23 +174,25 @@ An element to display a tree.
 
         _prepareData: function(data) {
           var result = JSON.parse(JSON.stringify(data));
-          indexData(result, 0);
+          indexData(result);
           return result;
         },
 
         /**
-         * Opens a branch for given node ID.
+         * Opens a tree branch up to node with a given ID.
          *
-         * @param {number} id - a node ID
+         * @param {string} id - a node ID
          */
         openBranch: function(id) {
-          var str = (id || 0).toString();
-          var len = str.length;
+          var arr = id.split(DELIMITER);
+          var len = arr.length;
           var n;
           var stack = [];
           for (var i = len; i >= 0; i--) {
-            n = Number(str.slice(0, len - i));
-            stack.push(n);
+            n = arr.slice(0, len - i).join(DELIMITER);
+            if (n) {
+              stack.push(n);
+            }
           }
           this._openNodes(stack);
         },
@@ -139,7 +200,7 @@ An element to display a tree.
         /**
          * Recursively opens a set of nodes.
          *
-         * @param {Array<number>} ids - an array of IDs to open
+         * @param {Array<string>} ids - an array of IDs to open
          */
         _openNodes: function(ids) {
           if (!ids || ids.length === 0) {
@@ -156,7 +217,7 @@ An element to display a tree.
         /**
          * Finds a DOM element by node ID.
          *
-         * @param {number} id - a node ID
+         * @param {string} id - a node ID
          * @return {HTMLElement} - a node having given ID
          */
         getDomNodeById: function(id) {
@@ -164,44 +225,45 @@ An element to display a tree.
         },
 
         /**
-         * Finds a `data` item by node ID.
+         * Finds a tree node by ID.
          *
-         * @param {number} id - a node ID
+         * @param {string} id - a node ID
          * @return {object} - a node having given ID
          */
-        getItemById: function(id) {
+        getNodeById: function(id) {
           return searchTree(this._indexedData, id);
         },
 
         /**
-         * Finds a parent `data` item by node ID.
+         * Finds a parent tree node by node ID.
          *
-         * @param {number} id - a node ID
+         * @param {string} id - a node ID
          * @return {object} - a node having given ID
          */
-        getParentById: function(id) {
-          var str = id.toString();
+        getParentNodeById: function(id) {
           var parent;
+          var arr = id.split(DELIMITER);
+          var len = arr.length;
           // check for root node
-          if (str !== '0') {
-            var parentId = str.length > 1 ? str.slice(0, str.length - 1) : 0;
-            parent = parentId === 0 ? this._indexedData : this.getItemById(parentId);
+          if (id !== ROOT_ID) {
+            var parentId = len > 1 ? arr.slice(0, len - 1).join(DELIMITER) : ROOT_ID;
+            parent = parentId === 0 ? this._indexedData : this.getNodeById(parentId);
           }
           return parent;
         },
 
         /**
-         * Finds an index of a given node in it's parent `children` array
+         * Finds an index of a given node in it's parent `children` array.
          *
          * @param {object} parent - a parent node object
-         * @param {number} id - a node ID
+         * @param {string} id - a node ID
          * @return {number} - an index
          */
-        getChildNodeIndexById: function(parent, id) {
+        getChildIndexById: function(parent, id) {
           var children = parent.children;
           if (children && children.length) {
             for (var i = 0; i < children.length; i++) {
-              if (children[i].id.toString() === id.toString()) {
+              if (children[i].id === id) {
                 return i;
               }
             }
@@ -210,24 +272,23 @@ An element to display a tree.
         },
 
         /**
-         * Finds an index of a given node in it's parent `children` array
+         * Constructs a path to `children` for a given tree node.
          *
          * @param {string} root - a name of property being bound to `data`
-         * @param {number} id - a node ID
+         * @param {object} node - a node object
          * @return {?string} - a path which can be used to call `splice` method.
          */
-        getPathById: function(root, id) {
+        getPathForNode: function(root, node) {
           // fail if root property name is not passed
           if (!root) {
             return null;
           }
-          var str = id.toString();
+          var id = node ? node.id : ROOT_ID;
           var path = '';
           var result;
-          var parent = this.getParentById(str);
-          if (parent.id > 0) {
-            path = parent.id.toString()
-              .split('')
+          if (id !== ROOT_ID) {
+            path = id
+              .split(DELIMITER)
               .map(function(n) {
                 return Number(n) - 1;
               })
@@ -241,12 +302,12 @@ An element to display a tree.
          * Constructs array of currently opened node ID's.
          * Doing this on `detached` would allow to store state, e. g. in localStorage.
          *
-         * @return {Array<number>} - an array of IDs to save
+         * @return {Array<string>} - an array of IDs to save
          */
         saveOpenedState: function() {
           return Array.prototype.slice.call(this.querySelectorAll('brainy-tree-node')).reduce(function(list, node) {
             if (node.opened) {
-              list.push(Number(node.dataset.id));
+              list.push(node.dataset.id);
             }
             return list;
           }, []);
@@ -255,7 +316,7 @@ An element to display a tree.
         /**
          * Restore tree state from array of node ID's.
          *
-         * @param {Array<number>} state - an array of IDs to restore
+         * @param {Array<string>} state - an array of IDs to restore
          */
         restoreOpenedState: function(state) {
           this._openNodes(state);

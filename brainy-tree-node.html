@@ -10,11 +10,13 @@
 
       :host ::content iron-collapse {
         padding-left: 1em;
+        @apply(--brainy-tree-node-children);
       }
 
       :host ::content #content {
         position: relative;
         margin: .1rem 0 .2rem;
+        @apply(--brainy-tree-node-content);
       }
     </style>
 
@@ -42,10 +44,7 @@
             value: false,
             observer: '_openedChanged'
           },
-          /**
-           * Template used to render each tree node.
-           */
-          template: Object
+          _template: Object
         },
 
         observers: [
@@ -74,7 +73,7 @@
         },
 
         _renderNodeContent: function() {
-          if (this.template) {
+          if (this._template) {
             if (this._instance) {
               // re-render if data changes
               this._teardownInstance();
@@ -82,7 +81,7 @@
             }
             var data = this.data;
             // templatize must be called once before stamp is called
-            this.templatize(this.template);
+            this.templatize(this._template);
             // stamp and prepare bindings
             this._instance = this.stamp({});
             this._instance.item = data;
@@ -96,7 +95,7 @@
             var children = document.createElement('iron-collapse');
             children.id = 'children';
             children.opened = this.opened;
-            children.noAnimation = 'true';
+            children.noAnimation = true;
             Polymer.dom(this).appendChild(children);
             Polymer.dom.flush();
             this._setupToggleListener();
@@ -104,10 +103,10 @@
         },
 
         _renderChildNodes: function() {
-          if (this.template) {
+          if (this._template) {
             return new Promise(function(resolve) {
               // clear <iron-collapse> content in case we are re-rendering
-              var children = Polymer.dom(this).querySelector('#children');
+              var children = this._getChildrenContainer();
               while (children.hasChildNodes()) {
                 children.removeChild(children.lastChild);
               }
@@ -115,7 +114,7 @@
               for (var i = 0; i < items.length; i++) {
                 var el = document.createElement('brainy-tree-node');
                 el.controller = this.controller;
-                el.template = this.template;
+                el._template = this._template;
                 el.dataHost = this._instance._rootDataHost;
                 el.data = items[i];
                 children.appendChild(el);
@@ -129,6 +128,10 @@
           this._children = this.data.children;
           this._updated = true;
           return this._renderChildNodes();
+        },
+
+        _getChildrenContainer: function() {
+          return Polymer.dom(this).querySelector('#children');
         },
 
         _setupToggleListener: function() {
@@ -162,7 +165,7 @@
 
         _openedChanged: function() {
           if (this._instance) {
-            Polymer.dom(this).querySelector('#children').opened = this.opened;
+            this._getChildrenContainer().opened = this.opened;
             this._instance.notifyPath('opened', this.opened);
             this._setupToggleListener();
           }
