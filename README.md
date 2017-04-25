@@ -39,19 +39,40 @@ common UX patterns like adding and deleting nodes.
             var scope = document.querySelector('template[is="dom-bind"]');
             var tree = document.querySelector('brainy-tree');
             scope.data = window.demoData;
-            scope._onDeleteTap = function(e) {
-              // get tree node from where delete was called
-              var node = e.model.dataHost;
-              var id = node.dataset.id;
-
-              // get parent node
-              var parent = tree.getParentById(id);
+            scope._onAddTap = function(e) {
+              // get tree node from where event was fired
+              var id = e.model.dataHost.dataset.id;
+              var node = tree.getNodeById(id);
 
               // get path to given node
-              var path = tree.getPathById('data', id);
+              var path = tree.getPathForNode('data', node);
+
+              // if node is a leaf, initialize children array
+              if (!node.children) {
+                scope.set(path, []);
+              }
+
+              // add a node in a data-binding-aware way
+              scope.push(path, {
+                name: 'child of ' + node.name,
+                children: []
+              });
+
+              // open node
+              tree.openBranch(id);
+            };
+            scope._onDeleteTap = function(e) {
+              // get ID of tree node from where event was fired
+              var id = e.model.dataHost.dataset.id;
+
+              // get parent node
+              var parent = tree.getParentNodeById(id);
+
+              // get path to parent node
+              var path = tree.getPathForNode('data', parent);
 
               // get index for given node
-              var index = tree.getChildNodeIndexById(parent, id);
+              var index = tree.getChildIndexById(parent, id);
 
               // remove that node in a data-binding-aware way
               scope.splice(path, index, 1);
@@ -79,6 +100,7 @@ common UX patterns like adding and deleting nodes.
     <b>[[item.name]]</b>
     <!-- do not show remove icon for root node -->
     <paper-icon-button icon="clear" hidden$="[[isRoot]]" on-tap="_onDeleteTap"></paper-icon-button>
+    <paper-icon-button icon="add" on-tap="_onAddTap"></paper-icon-button>
     <!-- only show input for leaf nodes -->
     <paper-input value="{{item.name}}" hidden$="[[!isLeaf]]"></paper-input>
   </template>
