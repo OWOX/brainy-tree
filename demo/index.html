@@ -43,7 +43,7 @@
                 </template>
               </span>
               <b>[[item.name]]</b>
-              <!-- do not show remove icon for root node, which has ID "0" -->
+              <!-- do not show remove icon for root node -->
               <paper-icon-button icon="clear" hidden$="[[isRoot]]" on-tap="_onDeleteTap"></paper-icon-button>
               <paper-icon-button icon="add" on-tap="_onAddTap"></paper-icon-button>
               <!-- only show input for leaf nodes -->
