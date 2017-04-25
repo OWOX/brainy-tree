@@ -4,7 +4,9 @@ _[Demo and API docs](https://owox.github.io/brainy-tree/)_
 
 `brainy-tree` is a Polymer 1.x data tree web component.
 
-A fork of [nuxeo-tree](https://www.webcomponents.org/element/nuxeo/nuxeo-ui-elements/nuxeo-tree) with some changes related to handling external data mutations, and some useful methods regarding common UX patterns like adding and deleting nodes.
+This is a fork of [nuxeo-tree](https://www.webcomponents.org/element/nuxeo/nuxeo-ui-elements/nuxeo-tree)
+with some changes related to handling external data mutations, and some useful methods regarding
+common UX patterns like adding and deleting nodes.
 
 <!--
 ```
@@ -126,4 +128,4 @@ For example, the live demo above uses the following `data` object:
 - The `data` property specifies the model of a tree node
 - The attribute `[toggle]` can be used to toggle a node
 - State management methods making easy opening branches
-- Tree node ID system based on depth and children count 
+- Tree node ID system based on depth and children count
