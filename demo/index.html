@@ -42,6 +42,7 @@
                   <iron-icon icon="hardware:keyboard-arrow-down" toggle></iron-icon>
                 </template>
               </span>
+              <span>[[prefix]] [[item.id]]:</span>
               <b>[[item.name]]</b>
               <!-- do not show remove icon for root node -->
               <paper-icon-button icon="clear" hidden$="[[isRoot]]" on-tap="_onDeleteTap"></paper-icon-button>
@@ -59,6 +60,7 @@
               var scope = document.querySelector('template[is="dom-bind"]');
               var tree = document.querySelector('brainy-tree');
               scope.data = window.demoData;
+              scope.prefix = 'Node ';
               scope._onAddTap = function(e) {
                 // get tree node from where event was fired
                 var id = e.model.dataHost.dataset.id;

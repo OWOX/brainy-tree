@@ -39,6 +39,7 @@ common UX patterns like adding and deleting nodes.
             var scope = document.querySelector('template[is="dom-bind"]');
             var tree = document.querySelector('brainy-tree');
             scope.data = window.demoData;
+            scope.prefix = 'Node ';
             scope._onAddTap = function(e) {
               // get tree node from where event was fired
               var id = e.model.dataHost.dataset.id;
@@ -97,6 +98,7 @@ common UX patterns like adding and deleting nodes.
         <iron-icon icon="hardware:keyboard-arrow-down" toggle></iron-icon>
       </template>
     </span>
+    <span>[[prefix]] [[item.id]]:</span>
     <b>[[item.name]]</b>
     <!-- do not show remove icon for root node -->
     <paper-icon-button icon="clear" hidden$="[[isRoot]]" on-tap="_onDeleteTap"></paper-icon-button>
@@ -112,6 +114,7 @@ common UX patterns like adding and deleting nodes.
 Tree node template is bound to template model of the following structure:
 ```js
 {
+  id: '0',         // generated node ID, useful to get subproperty path for splices
   item: {},        // data for given node
   isRoot: false,   // true if node is a tree root
   isLeaf: false,   // true if node does not have children
