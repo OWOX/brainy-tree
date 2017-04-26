@@ -161,30 +161,36 @@ The following code would render the tree:
         /**
          * Initializes the tree whenever the data changes.
          *
-         * @param {object} dataChange - an object describing `data` mutations
+         * @param {object} change - an object describing `data` mutations
          */
-        _initialize: function(dataChange) {
+        _initialize: function(change) {
           var data;
           var state = this.saveOpenedState();
-          if (dataChange && dataChange.base) {
-            data = this._prepareData(dataChange.base);
-            this.set('_indexedData', data);
+          console.log(change)
+          if (change) {
+            if (change.path === 'data') {
+              data = this._prepareData(change.base);
+              this.set('_indexedData', data);
 
-            this._template = Polymer.dom(this).querySelector('template');
-            if (this._root) {
-              Polymer.dom(this).removeChild(this._root);
+              this._template = Polymer.dom(this).querySelector('template');
+              if (this._root) {
+                Polymer.dom(this).removeChild(this._root);
+              }
+              this._root = document.createElement('brainy-tree-node');
+              this._root.dataHost = this.dataHost;
+              this._root._template = this._template;
+              this._root.data = data;
+              this._root.dataset.id = Brainy.Tree.ROOT_ID;
+              this._root.isRoot = true;
+              this._root.tree = this;
+              Polymer.dom(this).appendChild(this._root);
+              this._root.open().then(function() {
+                this.restoreOpenedState(state);
+              }.bind(this));
+              Polymer.dom.flush();
+            } else {
+
             }
-            this._root = document.createElement('brainy-tree-node');
-            this._root.dataHost = this.dataHost;
-            this._root._template = this._template;
-            this._root.data = data;
-            this._root.dataset.id = Brainy.Tree.ROOT_ID;
-            this._root.isRoot = true;
-            Polymer.dom(this).appendChild(this._root);
-            this._root.open().then(function() {
-              this.restoreOpenedState(state);
-            }.bind(this));
-            Polymer.dom.flush();
           }
         },
 

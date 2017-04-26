@@ -12,6 +12,7 @@
   <link rel="import" href="../../iron-icons/iron-icons.html">
   <link rel="import" href="../../iron-demo-helpers/demo-snippet.html">
   <link rel="import" href="../../iron-demo-helpers/demo-pages-shared-styles.html">
+  <link rel="import" href="node-inner.html">
   <link rel="import" href="../brainy-tree.html">
   <script src="data.js"></script>
 </head>
@@ -31,7 +32,7 @@
     <demo-snippet>
       <template>
         <template is="dom-bind">
-          <brainy-tree data="[[data]]">
+          <brainy-tree data="{{data}}">
             <template>
               <!-- do not show expand icon for leaf nodes -->
               <span hidden$="[[isLeaf]]">
@@ -48,7 +49,7 @@
               <paper-icon-button icon="clear" hidden$="[[isRoot]]" on-tap="_onDeleteTap"></paper-icon-button>
               <paper-icon-button icon="add" on-tap="_onAddTap"></paper-icon-button>
               <!-- only show input for leaf nodes -->
-              <paper-input value="{{item.name}}" hidden$="[[!isLeaf]]"></paper-input>
+              <node-inner value="{{item.name}}" hidden$="[[!isLeaf]]"></node-inner>
             </template>
           </brainy-tree>
         </template>

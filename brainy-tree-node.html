@@ -45,6 +45,10 @@
             value: []
           },
           _instance: Object,
+          item: {
+            type: Object,
+            notify: true
+          },
           opened: {
             type: Boolean,
             value: false,
@@ -177,6 +181,8 @@
                 el._template = this._template;
                 el.dataHost = this._instance._rootDataHost;
                 el.data = items[i];
+                el.index = i;
+                el.tree = this.tree;
                 children.appendChild(el);
               }
               resolve();
@@ -211,6 +217,22 @@
               instance._instance[prop] = value;
             }
           });
+        },
+
+        // Implements extension point from Templatizer
+        // Called as a side effect of a template instance path change, responsible
+        // for notifying data.<path> change up to host.
+        _forwardInstancePath: function(inst, path, value) {
+          var tree = this.tree;
+          if (path.indexOf('item') === 0 && tree) {
+            console.log(path, value);
+            var parts = [
+              tree.getPathForNode('data', this.id),
+              this.index,
+              path.substring(5)
+            ];
+            tree._notifyPath(parts.join('.'), value);
+          }
         },
 
         _teardownInstance: function() {

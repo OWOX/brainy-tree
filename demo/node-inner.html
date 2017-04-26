@@ -1,0 +1,24 @@
+<dom-module id="node-inner">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+
+    <paper-input value="{{value}}"></paper-input>
+
+  </template>
+  <script>
+    Polymer({
+      is: 'node-inner',
+
+      properties: {
+        value: {
+          type: String,
+          notify: true
+        }
+      }
+    });
+  </script>
+</dom-module>
