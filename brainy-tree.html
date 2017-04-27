@@ -297,6 +297,17 @@ The following code would render the tree:
         },
 
         /**
+         * Constructs an ID for possible next `children` node of a given node.
+         *
+         * @param {object} node - a node object
+         * @return {string} - an ID
+         */
+        getNextChildId: function(node) {
+          var len = node.children ? node.children.length + 1 : 1;
+          return node.id === Brainy.Tree.ROOT_ID ? len.toString() : node.id + DELIMITER + len;
+        },
+
+        /**
          * Constructs a path to `children` for a given tree node.
          *
          * @param {string} root - a name of property being bound to `data`

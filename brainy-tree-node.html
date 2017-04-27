@@ -8,9 +8,13 @@
         display: block;
       }
 
+      :host([has-children]) {
+        @apply(--brainy-tree-node-has-children)
+      }
+
       :host ::content iron-collapse {
         padding-left: 1em;
-        @apply(--brainy-tree-node-children);
+        @apply(--brainy-tree-node-children-container);
       }
 
       :host ::content #content {
@@ -154,13 +158,15 @@
             this.templatize(this._template);
 
             // stamp and prepare bindings
+            var isLeaf = !data.children || data.children.length === 0;
             this._instance = this.stamp({});
             this._instance.item = data;
             this._instance.opened = this.opened;
-            this._instance.isLeaf = !data.children || data.children.length === 0;
+            this._instance.isLeaf = isLeaf;
             this._instance.isRoot = data.id === Brainy.Tree.ROOT_ID;
             this._instance.isLast = this.isLastChild;
             this.dataset.id = data.id;
+            this.hasChildren = !isLeaf;
 
             // prepare content container
             var content = this._getContentContainer();
@@ -203,7 +209,6 @@
                 el._template = this._template;
                 el.dataHost = this._instance._rootDataHost;
                 el.isLastChild = items.length === i + 1;
-                el.hasChildren = Boolean(items.length);
                 el.data = items[i];
                 el.tree = this.tree;
                 children.appendChild(el);
