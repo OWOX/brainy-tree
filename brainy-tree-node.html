@@ -49,6 +49,10 @@
             type: Object,
             notify: true
           },
+          hasChildren: {
+            type: Boolean,
+            reflectToAttribute: true
+          },
           isLastChild: {
             type: Boolean,
             reflectToAttribute: true
@@ -199,6 +203,7 @@
                 el._template = this._template;
                 el.dataHost = this._instance._rootDataHost;
                 el.isLastChild = items.length === i + 1;
+                el.hasChildren = Boolean(items.length);
                 el.data = items[i];
                 el.tree = this.tree;
                 children.appendChild(el);
@@ -237,6 +242,14 @@
           this._instances.forEach(function(instance) {
             if (instance._instance) {
               instance._instance[prop] = value;
+            }
+          });
+        },
+
+        _forwardParentPath: function(path, value) {
+          this._instances.forEach(function(instance) {
+            if (instance._instance) {
+              instance._instance.notifyPath(path, value, true);
             }
           });
         },
