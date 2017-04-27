@@ -114,10 +114,10 @@ common UX patterns like adding and deleting nodes.
 Tree node template is bound to template model of the following structure:
 ```js
 {
-  id: '0',         // generated node ID, useful to get subproperty path for splices
   item: {},        // data for given node
   isRoot: false,   // true if node is a tree root
   isLeaf: false,   // true if node does not have children
+  isLast: false,   // true if node is a last child
   opened: false    // true if node has been toggled to opened state
 }
 ```

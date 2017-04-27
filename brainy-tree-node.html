@@ -49,6 +49,10 @@
             type: Object,
             notify: true
           },
+          isLastChild: {
+            type: Boolean,
+            reflectToAttribute: true
+          },
           opened: {
             type: Boolean,
             value: false,
@@ -63,7 +67,7 @@
 
         created: function() {
           this._instanceProps = {
-            id: true,
+            isLast: true,
             isLeaf: true,
             isRoot: true,
             item: true,
@@ -151,6 +155,7 @@
             this._instance.opened = this.opened;
             this._instance.isLeaf = !data.children || data.children.length === 0;
             this._instance.isRoot = data.id === Brainy.Tree.ROOT_ID;
+            this._instance.isLast = this.isLastChild;
             this.dataset.id = data.id;
 
             // prepare content container
@@ -191,11 +196,10 @@
               var items = this._children || [];
               for (var i = 0; i < items.length; i++) {
                 var el = document.createElement('brainy-tree-node');
-                el.controller = this.controller;
                 el._template = this._template;
                 el.dataHost = this._instance._rootDataHost;
+                el.isLastChild = items.length === i + 1;
                 el.data = items[i];
-                el.index = i;
                 el.tree = this.tree;
                 children.appendChild(el);
               }
