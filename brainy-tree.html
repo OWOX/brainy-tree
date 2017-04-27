@@ -149,7 +149,10 @@ The following code would render the tree:
         is: 'brainy-tree',
 
         properties: {
-          data: Object,
+          data: {
+            type: Object,
+            notify: true
+          },
           _indexedData: Object,
           _template: Object
         },
@@ -157,6 +160,10 @@ The following code would render the tree:
         observers: [
           '_initialize(data.*)'
         ],
+
+        listeners: {
+          'item-changed': '_itemChanged'
+        },
 
         /**
          * Initializes the tree whenever the data changes.
@@ -166,37 +173,54 @@ The following code would render the tree:
         _initialize: function(change) {
           var data;
           var state = this.saveOpenedState();
-          console.log(change)
-          if (change) {
-            if (change.path === 'data') {
-              data = this._prepareData(change.base);
-              this.set('_indexedData', data);
+          var path = change.path;
 
-              this._template = Polymer.dom(this).querySelector('template');
-              if (this._root) {
-                Polymer.dom(this).removeChild(this._root);
-              }
-              this._root = document.createElement('brainy-tree-node');
-              this._root.dataHost = this.dataHost;
-              this._root._template = this._template;
-              this._root.data = data;
-              this._root.dataset.id = Brainy.Tree.ROOT_ID;
-              this._root.isRoot = true;
-              this._root.tree = this;
-              Polymer.dom(this).appendChild(this._root);
-              this._root.open().then(function() {
-                this.restoreOpenedState(state);
-              }.bind(this));
-              Polymer.dom.flush();
-            } else {
+          if (path === 'data') {
+            data = this._prepareData(change.base);
+            this.set('_indexedData', data);
 
+            this._template = Polymer.dom(this).querySelector('template');
+            if (this._root) {
+              Polymer.dom(this).removeChild(this._root);
+            }
+            this._root = document.createElement('brainy-tree-node');
+            this._root.dataHost = this.dataHost;
+            this._root._template = this._template;
+            this._root.data = data;
+            this._root.dataset.id = Brainy.Tree.ROOT_ID;
+            this._root.isRoot = true;
+            this._root.tree = this;
+            Polymer.dom(this).appendChild(this._root);
+            this._root.open().then(function() {
+              this.restoreOpenedState(state);
+            }.bind(this));
+            Polymer.dom.flush();
+          } else if (path.indexOf('splices') === path.length - 7) {
+            // get updated data to keep indexed data in sync
+            var parentPath = path.replace('.children.splices', '');
+            var indexedPath = parentPath.replace('data.', '_indexedData.');
+            var parent = this.get(parentPath);
+            var indexed = this.get(indexedPath);
+
+            // index patch recursively
+            var patch = this._prepareData(parent, indexed.id);
+            this.set(indexedPath, patch);
+
+            var node = this.getDomNodeById(indexed.id);
+            if (node) {
+              node.set('data', patch);
             }
           }
         },
 
-        _prepareData: function(data) {
+        _itemChanged: function(e) {
+          var item = e.detail;
+          this.set(item.path, item.value);
+        },
+
+        _prepareData: function(data, id) {
           var result = JSON.parse(JSON.stringify(data));
-          indexData(result);
+          indexData(result, id);
           return result;
         },
 

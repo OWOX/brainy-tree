@@ -135,16 +135,16 @@
           return this._getBinding(prop, dataHost.dataHost);
         },
 
-        _renderNodeContent: function() {
+        _renderNodeContent: function(data) {
           if (this._template) {
             if (this._instance) {
               // re-render if data changes
               this._teardownInstance();
-              this._fetchChildren();
             }
-            var data = this.data;
+
             // templatize must be called once before stamp is called
             this.templatize(this._template);
+
             // stamp and prepare bindings
             this._instance = this.stamp({});
             this._instance.item = data;
@@ -152,17 +152,31 @@
             this._instance.isLeaf = !data.children || data.children.length === 0;
             this._instance.isRoot = data.id === Brainy.Tree.ROOT_ID;
             this.dataset.id = data.id;
-            var content = document.createElement('div');
-            content.id = 'content';
+
+            // prepare content container
+            var content = this._getContentContainer();
+            if (content === null) {
+              content = document.createElement('div');
+              content.id = 'content';
+              Polymer.dom(this).appendChild(content);
+            }
+
+            // append node content
             Polymer.dom(content).appendChild(this._instance.root);
-            Polymer.dom(this).appendChild(content);
-            var children = document.createElement('iron-collapse');
-            children.id = 'children';
-            children.opened = this.opened;
-            children.noAnimation = true;
-            Polymer.dom(this).appendChild(children);
-            Polymer.dom.flush();
-            this._setupToggleListener();
+
+            // render children
+            var container = this._getChildrenContainer();
+            if (container) {
+              this._fetchChildren();
+            } else {
+              var children = document.createElement('iron-collapse');
+              children.id = 'children';
+              children.opened = this.opened;
+              children.noAnimation = true;
+              Polymer.dom(this).appendChild(children);
+              Polymer.dom.flush();
+              this._setupToggleListener();
+            }
           }
         },
 
@@ -200,6 +214,10 @@
           return Polymer.dom(this).querySelector('#children');
         },
 
+        _getContentContainer: function() {
+          return Polymer.dom(this).querySelector('#content');
+        },
+
         _setupToggleListener: function() {
           this._flushTemplates();
           var toggleEls = Polymer.dom(this).querySelector('#content').querySelectorAll('[toggle]');
@@ -225,13 +243,17 @@
         _forwardInstancePath: function(inst, path, value) {
           var tree = this.tree;
           if (path.indexOf('item') === 0 && tree) {
-            console.log(path, value);
+            // use parent node path as a prefix
+            var node = tree.getParentNodeById(this.dataset.id);
             var parts = [
-              tree.getPathForNode('data', this.id),
+              tree.getPathForNode('data', node),
               this.index,
               path.substring(5)
             ];
-            tree._notifyPath(parts.join('.'), value);
+            tree.fire('item-changed', {
+              path: parts.join('.'),
+              value: value
+            });
           }
         },
 
