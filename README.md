@@ -155,4 +155,8 @@ For example, the live demo above uses the following `data` object:
 - The `data` property specifies the model of a tree node
 - The attribute `[toggle]` can be used to toggle a node
 - State management methods making easy opening branches
-- Tree node ID system based on depth and children count
+
+## Warning
+`brainy-tree` maintains node ID system based on depth and children count. Current behavior is mutating data
+and setting `id` property on each node. Initially I tried to maintain duplicate inner data structure in sync,
+but this was a bit tricky. But I'm going to refactor this behavior later on, as well as add tests for element.

@@ -123,34 +123,18 @@ The following code would render the tree:
         }
       }
 
-      /**
-       * Recursively walks through tree nodes ans finds node with a given ID.
-       *
-       * @param {object} node - a node to start from
-       * @param {string} id - an ID to search
-       * @return {?object} - a node with a given ID
-       */
-      function searchTree(node, id) {
-        var children = node.children;
-        if (node.id === id) {
-          return node;
-        } else if (children && children.length) {
-          var i;
-          var result = null;
-          for (i = 0; result === null && i < children.length; i++) {
-            result = searchTree(children[i], id);
-          }
-          return result;
-        }
-        return null;
-      }
-
       Polymer({
         is: 'brainy-tree',
 
         properties: {
-          data: Object,
-          _indexedData: Object,
+          data: {
+            type: Object,
+            notify: true
+          },
+          _indexed: {
+            type: Boolean,
+            value: false
+          },
           _template: Object
         },
 
@@ -158,17 +142,25 @@ The following code would render the tree:
           '_initialize(data.*)'
         ],
 
+        listeners: {
+          'item-changed': '_itemChanged'
+        },
+
         /**
          * Initializes the tree whenever the data changes.
          *
-         * @param {object} dataChange - an object describing `data` mutations
+         * @param {object} change - an object describing `data` mutations
          */
-        _initialize: function(dataChange) {
-          var data;
+        _initialize: function(change) {
           var state = this.saveOpenedState();
-          if (dataChange && dataChange.base) {
-            data = this._prepareData(dataChange.base);
-            this.set('_indexedData', data);
+          var path = change.path;
+
+          if (path === 'data') {
+            // index whole tree once it is set
+            if (!this._indexed && change.base) {
+              this._indexed = true;
+              this.data = this._prepareData(change.base);
+            }
 
             this._template = Polymer.dom(this).querySelector('template');
             if (this._root) {
@@ -177,20 +169,34 @@ The following code would render the tree:
             this._root = document.createElement('brainy-tree-node');
             this._root.dataHost = this.dataHost;
             this._root._template = this._template;
-            this._root.data = data;
+            this._root.data = this.data;
             this._root.dataset.id = Brainy.Tree.ROOT_ID;
             this._root.isRoot = true;
+            this._root.tree = this;
             Polymer.dom(this).appendChild(this._root);
             this._root.open().then(function() {
               this.restoreOpenedState(state);
             }.bind(this));
             Polymer.dom.flush();
+          } else if (path.indexOf('splices') === path.length - 7) {
+            // strip splices from path
+            var parentPath = path.replace('.children.splices', '');
+            var parent = this.get(parentPath);
+            var patch = this._prepareData(parent, parent.id);
+            this.set(parentPath, patch);
+            var node = this.getDomNodeById(parent.id);
+            node.set('data', patch);
           }
         },
 
-        _prepareData: function(data) {
+        _itemChanged: function(e) {
+          var item = e.detail;
+          this.set(item.path, item.value);
+        },
+
+        _prepareData: function(data, id) {
           var result = JSON.parse(JSON.stringify(data));
-          indexData(result);
+          indexData(result, id);
           return result;
         },
 
@@ -247,7 +253,10 @@ The following code would render the tree:
          * @return {object} - a node having given ID
          */
         getNodeById: function(id) {
-          return searchTree(this._indexedData, id);
+          var node = this.getDomNodeById(id);
+          if (node) {
+            return node.data;
+          }
         },
 
         /**
@@ -263,7 +272,7 @@ The following code would render the tree:
           // check for root node
           if (id !== Brainy.Tree.ROOT_ID) {
             var parentId = len > 1 ? arr.slice(0, len - 1).join(DELIMITER) : Brainy.Tree.ROOT_ID;
-            parent = parentId === 0 ? this._indexedData : this.getNodeById(parentId);
+            parent = parentId === 0 ? this.data : this.getNodeById(parentId);
           }
           return parent;
         },
