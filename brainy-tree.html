@@ -123,28 +123,6 @@ The following code would render the tree:
         }
       }
 
-      /**
-       * Recursively walks through tree nodes ans finds node with a given ID.
-       *
-       * @param {object} node - a node to start from
-       * @param {string} id - an ID to search
-       * @return {?object} - a node with a given ID
-       */
-      function searchTree(node, id) {
-        var children = node.children;
-        if (node.id === id) {
-          return node;
-        } else if (children && children.length) {
-          var i;
-          var result = null;
-          for (i = 0; result === null && i < children.length; i++) {
-            result = searchTree(children[i], id);
-          }
-          return result;
-        }
-        return null;
-      }
-
       Polymer({
         is: 'brainy-tree',
 
@@ -153,7 +131,10 @@ The following code would render the tree:
             type: Object,
             notify: true
           },
-          _indexedData: Object,
+          _indexed: {
+            type: Boolean,
+            value: false
+          },
           _template: Object
         },
 
@@ -171,13 +152,15 @@ The following code would render the tree:
          * @param {object} change - an object describing `data` mutations
          */
         _initialize: function(change) {
-          var data;
           var state = this.saveOpenedState();
           var path = change.path;
 
           if (path === 'data') {
-            data = this._prepareData(change.base);
-            this.set('_indexedData', data);
+            // index whole tree once it is set
+            if (!this._indexed && change.base) {
+              this._indexed = true;
+              this.data = this._prepareData(change.base);
+            }
 
             this._template = Polymer.dom(this).querySelector('template');
             if (this._root) {
@@ -186,7 +169,7 @@ The following code would render the tree:
             this._root = document.createElement('brainy-tree-node');
             this._root.dataHost = this.dataHost;
             this._root._template = this._template;
-            this._root.data = data;
+            this._root.data = this.data;
             this._root.dataset.id = Brainy.Tree.ROOT_ID;
             this._root.isRoot = true;
             this._root.tree = this;
@@ -196,20 +179,13 @@ The following code would render the tree:
             }.bind(this));
             Polymer.dom.flush();
           } else if (path.indexOf('splices') === path.length - 7) {
-            // get updated data to keep indexed data in sync
+            // strip splices from path
             var parentPath = path.replace('.children.splices', '');
-            var indexedPath = parentPath.replace('data.', '_indexedData.');
             var parent = this.get(parentPath);
-            var indexed = this.get(indexedPath);
-
-            // index patch recursively
-            var patch = this._prepareData(parent, indexed.id);
-            this.set(indexedPath, patch);
-
-            var node = this.getDomNodeById(indexed.id);
-            if (node) {
-              node.set('data', patch);
-            }
+            var patch = this._prepareData(parent, parent.id);
+            this.set(parentPath, patch);
+            var node = this.getDomNodeById(parent.id);
+            node.set('data', patch);
           }
         },
 
@@ -277,7 +253,10 @@ The following code would render the tree:
          * @return {object} - a node having given ID
          */
         getNodeById: function(id) {
-          return searchTree(this._indexedData, id);
+          var node = this.getDomNodeById(id);
+          if (node) {
+            return node.data;
+          }
         },
 
         /**
@@ -293,7 +272,7 @@ The following code would render the tree:
           // check for root node
           if (id !== Brainy.Tree.ROOT_ID) {
             var parentId = len > 1 ? arr.slice(0, len - 1).join(DELIMITER) : Brainy.Tree.ROOT_ID;
-            parent = parentId === 0 ? this._indexedData : this.getNodeById(parentId);
+            parent = parentId === 0 ? this.data : this.getNodeById(parentId);
           }
           return parent;
         },
