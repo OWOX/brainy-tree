@@ -6,6 +6,9 @@ _[Demo and API docs](https://owox.github.io/brainy-tree/)_
 
 `brainy-tree` is a Polymer 1.x data tree web component.
 
+**WIP!** I'm still working on this and API may change significantly!
+Use this at your own risk. Any help, especially with tests, is strongly appreciated!
+
 This is a fork of [nuxeo-tree](https://www.webcomponents.org/element/nuxeo/nuxeo-ui-elements/nuxeo-tree)
 with some changes related to handling external data mutations, and some useful methods regarding
 common UX patterns like adding and deleting nodes.
@@ -119,7 +122,8 @@ Tree node template is bound to template model of the following structure:
   isLeaf: false,   // true if node does not have children
   isFirst: false,  // true if node is a first child
   isLast: false,   // true if node is a last child
-  opened: false    // true if node has been toggled to opened state
+  opened: false,   // true if node has been toggled to opened state
+  siblingsCount: 0 // count of nodes at the same level
 }
 ```
 
