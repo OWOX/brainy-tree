@@ -69,6 +69,9 @@
             value: false,
             observer: '_openedChanged'
           },
+          siblingsCount: {
+            type: Number
+          },
           _template: Object
         },
 
@@ -83,7 +86,8 @@
             isLeaf: true,
             isRoot: true,
             item: true,
-            opened: true
+            opened: true,
+            siblingsCount: true
           };
         },
 
@@ -169,6 +173,7 @@
             this._instance.isRoot = data.id === Brainy.Tree.ROOT_ID;
             this._instance.isFirst = this.isFirstChild;
             this._instance.isLast = this.isLastChild;
+            this._instance.siblingsCount = this.siblingsCount;
             this.dataset.id = data.id;
 
             // prepare content container
@@ -213,6 +218,7 @@
                 el.dataHost = this._instance._rootDataHost;
                 el.isFirstChild = i === 0;
                 el.isLastChild = items.length === i + 1;
+                el.siblingsCount = items.length;
                 el.hasChildren = Boolean(items[i].children && items[i].children.length);
                 el.data = items[i];
                 el.tree = this.tree;
