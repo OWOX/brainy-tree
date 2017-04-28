@@ -123,6 +123,28 @@ The following code would render the tree:
         }
       }
 
+      /**
+       * Recursively walks through tree nodes ans finds node with a given ID.
+       *
+       * @param {object} node - a node to start from
+       * @param {string} id - an ID to search
+       * @return {?object} - a node with a given ID
+       */
+      function searchTree(node, id) {
+        var children = node.children;
+        if (node.id === id) {
+          return node;
+        } else if (children && children.length) {
+          var i;
+          var result = null;
+          for (i = 0; result === null && i < children.length; i++) {
+            result = searchTree(children[i], id);
+          }
+          return result;
+        }
+        return null;
+      }
+
       Polymer({
         is: 'brainy-tree',
 
@@ -250,13 +272,12 @@ The following code would render the tree:
          * Finds a tree node by ID.
          *
          * @param {string} id - a node ID
+         * @param {?object} start - a node from where to start
          * @return {object} - a node having given ID
          */
-        getNodeById: function(id) {
-          var node = this.getDomNodeById(id);
-          if (node) {
-            return node.data;
-          }
+        getNodeById: function(id, start) {
+          start = start || this.data;
+          return searchTree(start, id);
         },
 
         /**
