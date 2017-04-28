@@ -117,6 +117,7 @@ Tree node template is bound to template model of the following structure:
   item: {},        // data for given node
   isRoot: false,   // true if node is a tree root
   isLeaf: false,   // true if node does not have children
+  isFirst: false,  // true if node is a first child
   isLast: false,   // true if node is a last child
   opened: false    // true if node has been toggled to opened state
 }

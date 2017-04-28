@@ -9,7 +9,7 @@
       }
 
       :host([has-children]) {
-        @apply(--brainy-tree-node-has-children)
+        @apply(--brainy-tree-node-has-children);
       }
 
       :host ::content iron-collapse {
@@ -54,6 +54,10 @@
             notify: true
           },
           hasChildren: {
+            type: Boolean,
+            reflectToAttribute: true
+          },
+          isFirstChild: {
             type: Boolean,
             reflectToAttribute: true
           },
@@ -158,15 +162,14 @@
             this.templatize(this._template);
 
             // stamp and prepare bindings
-            var isLeaf = !data.children || data.children.length === 0;
             this._instance = this.stamp({});
             this._instance.item = data;
             this._instance.opened = this.opened;
-            this._instance.isLeaf = isLeaf;
+            this._instance.isLeaf = !data.children || data.children.length === 0;
             this._instance.isRoot = data.id === Brainy.Tree.ROOT_ID;
+            this._instance.isFirst = this.isFirstChild;
             this._instance.isLast = this.isLastChild;
             this.dataset.id = data.id;
-            this.hasChildren = !isLeaf;
 
             // prepare content container
             var content = this._getContentContainer();
@@ -208,7 +211,9 @@
                 var el = document.createElement('brainy-tree-node');
                 el._template = this._template;
                 el.dataHost = this._instance._rootDataHost;
+                el.isFirstChild = i === 0;
                 el.isLastChild = items.length === i + 1;
+                el.hasChildren = Boolean(items[i].children && items[i].children.length);
                 el.data = items[i];
                 el.tree = this.tree;
                 children.appendChild(el);
