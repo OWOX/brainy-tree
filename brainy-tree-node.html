@@ -12,14 +12,13 @@
         @apply(--brainy-tree-node-has-children);
       }
 
-      :host ::content iron-collapse {
-        padding-left: 1em;
+      :host ::content > iron-collapse {
+        padding-left: 16px;
         @apply(--brainy-tree-node-children-container);
       }
 
-      :host ::content #content {
+      :host ::content > #content {
         position: relative;
-        margin: .1rem 0 .2rem;
         @apply(--brainy-tree-node-content);
       }
     </style>
@@ -79,6 +78,7 @@
 
         created: function() {
           this._instanceProps = {
+            isFirst: true,
             isLast: true,
             isLeaf: true,
             isRoot: true,

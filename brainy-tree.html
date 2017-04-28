@@ -273,12 +273,10 @@ The following code would render the tree:
          * Finds a tree node by ID.
          *
          * @param {string} id - a node ID
-         * @param {?object} start - a node from where to start
          * @return {object} - a node having given ID
          */
-        getNodeById: function(id, start) {
-          start = start || this.data;
-          return searchTree(start, id);
+        getNodeById: function(id) {
+          return searchTree(this.data, id);
         },
 
         /**
