@@ -187,7 +187,7 @@ The following code would render the tree:
             this._root.hasChildren = Boolean(change.base.children.length);
             this._root.tree = this;
             Polymer.dom(this).appendChild(this._root);
-            this._render();
+            this.renderDeep(this._root);
             Polymer.dom.flush();
           } else if (path.indexOf('splices') === path.length - 7) {
             // strip splices from path
@@ -197,27 +197,28 @@ The following code would render the tree:
             this.set(parentPath, patch);
             var node = this.getDomNodeById(parent.id);
             node.set('data', patch);
-            this._renderDeep(node);
+            this.renderDeep(node);
           } else if (!change.base) {
             this._root.remove();
           }
         },
 
-        _renderDeep: function(node) {
+        /**
+         * Renders a SOM node and its children.
+         *
+         * @param {HTMLElement} node - a DOM node to render.
+         */
+        renderDeep: function(node) {
           node.render().then(function(container) {
             var c$ = container.children;
             if (c$) {
               for (var i = 0; i < c$.length; i++) {
                 if (c$[i].data.children) {
-                  this._renderDeep(c$[i]);
+                  this.renderDeep(c$[i]);
                 }
               }
             }
           }.bind(this));
-        },
-
-        _render: function() {
-          this._renderDeep(this._root);
         },
 
         _itemChanged: function(e) {
@@ -287,18 +288,6 @@ The following code would render the tree:
             }
             return -1;
           }
-        },
-
-        /**
-         * Constructs an ID for possible next `children` node of a given node.
-         *
-         * @param {object} node - a node object
-         * @return {string} - an ID
-         */
-        getNextChildId: function(node) {
-          var config = Brainy.Tree;
-          var len = node.children ? node.children.length + 1 : 1;
-          return node.id === config.ROOT_ID ? len.toString() : node.id + config.DELIMITER + len;
         },
 
         /**
