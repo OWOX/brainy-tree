@@ -1,5 +1,4 @@
 <link rel="import" href="../polymer/polymer.html">
-<link rel="import" href="../iron-collapse/iron-collapse.html">
 
 <dom-module id="brainy-tree-node">
   <template>
@@ -12,7 +11,7 @@
         @apply(--brainy-tree-node-has-children);
       }
 
-      :host ::content > iron-collapse {
+      :host ::content > #children {
         padding-left: 16px;
         @apply(--brainy-tree-node-children-container);
       }
@@ -64,11 +63,6 @@
             type: Boolean,
             reflectToAttribute: true
           },
-          opened: {
-            type: Boolean,
-            value: false,
-            observer: '_openedChanged'
-          },
           siblingsCount: {
             type: Number
           },
@@ -86,7 +80,6 @@
             isLeaf: true,
             isRoot: true,
             item: true,
-            opened: true,
             siblingsCount: true
           };
         },
@@ -99,25 +92,8 @@
           this._instances.splice(this._instances.indexOf(this), 1);
         },
 
-        toggle: function() {
-          if (this._updated) {
-            this.opened = !this.opened;
-          } else {
-            this._fetchChildren();
-            this.opened = true;
-          }
-        },
-
-        open: function() {
-          this.opened = true;
-          if (!this._updated) {
-            return this._fetchChildren();
-          }
-          return Promise.resolve();
-        },
-
-        close: function() {
-          this.opened = false;
+        render: function() {
+          return this._updated ? Promise.resolve(this._getChildrenContainer()) : this._fetchChildren();
         },
 
         // this overrides the default from Polymer.Templatizer
@@ -168,7 +144,6 @@
             // stamp and prepare bindings
             this._instance = this.stamp({});
             this._instance.item = data;
-            this._instance.opened = this.opened;
             this._instance.isLeaf = !data.children || data.children.length === 0;
             this._instance.isRoot = data.id === Brainy.Tree.ROOT_ID;
             this._instance.isFirst = this.isFirstChild;
@@ -192,13 +167,10 @@
             if (container) {
               this._fetchChildren();
             } else {
-              var children = document.createElement('iron-collapse');
+              var children = document.createElement('div');
               children.id = 'children';
-              children.opened = this.opened;
-              children.noAnimation = true;
               Polymer.dom(this).appendChild(children);
               Polymer.dom.flush();
-              this._setupToggleListener();
             }
           }
         },
@@ -206,7 +178,7 @@
         _renderChildNodes: function() {
           if (this._template) {
             return new Promise(function(resolve) {
-              // clear <iron-collapse> content in case we are re-rendering
+              // clear content in case we are re-rendering
               var children = this._getChildrenContainer();
               while (children.hasChildNodes()) {
                 children.removeChild(children.lastChild);
@@ -220,11 +192,12 @@
                 el.isLastChild = items.length === i + 1;
                 el.siblingsCount = items.length;
                 el.hasChildren = Boolean(items[i].children && items[i].children.length);
+                el.index = i;
                 el.data = items[i];
                 el.tree = this.tree;
                 children.appendChild(el);
               }
-              resolve();
+              resolve(children);
             }.bind(this));
           }
         },
@@ -241,14 +214,6 @@
 
         _getContentContainer: function() {
           return Polymer.dom(this).querySelector('#content');
-        },
-
-        _setupToggleListener: function() {
-          this._flushTemplates();
-          var toggleEls = Polymer.dom(this).querySelector('#content').querySelectorAll('[toggle]');
-          for (var i = 0; i < toggleEls.length; i++) {
-            this.listen(toggleEls[i], 'tap', 'toggle');
-          }
         },
 
         // Implements extension point from Templatizer mixin
@@ -300,14 +265,6 @@
           }
           this._instance = null;
           this._updated = false;
-        },
-
-        _openedChanged: function() {
-          if (this._instance) {
-            this._getChildrenContainer().opened = this.opened;
-            this._instance.notifyPath('opened', this.opened);
-            this._setupToggleListener();
-          }
         }
       });
     })();

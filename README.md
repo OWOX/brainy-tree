@@ -10,8 +10,7 @@ _[Demo and API docs](https://owox.github.io/brainy-tree/)_
 Use this at your own risk. Any help, especially with tests, is strongly appreciated!
 
 This is a fork of [nuxeo-tree](https://www.webcomponents.org/element/nuxeo/nuxeo-ui-elements/nuxeo-tree)
-with some changes related to handling external data mutations, and some useful methods regarding
-common UX patterns like adding and deleting nodes.
+with a lot of changes regarding common UX patterns like adding and deleting nodes.
 
 <!--
 ```
@@ -61,9 +60,6 @@ common UX patterns like adding and deleting nodes.
                 name: 'child of ' + node.name,
                 children: []
               });
-
-              // open node
-              tree.openBranch(id);
             };
             scope._onDeleteTap = function(e) {
               // get ID of tree node from where event was fired
@@ -92,15 +88,6 @@ common UX patterns like adding and deleting nodes.
 ```html
 <brainy-tree data="[[data]]">
   <template>
-    <!-- do not show expand icon for leaf nodes -->
-    <span hidden$="[[isLeaf]]">
-      <template is="dom-if" if="[[!opened]]">
-        <iron-icon icon="hardware:keyboard-arrow-right" toggle></iron-icon>
-      </template>
-      <template is="dom-if" if="[[opened]]">
-        <iron-icon icon="hardware:keyboard-arrow-down" toggle></iron-icon>
-      </template>
-    </span>
     <span>[[prefix]] [[item.id]]:</span>
     <b>[[item.name]]</b>
     <!-- do not show remove icon for root node -->
@@ -122,7 +109,6 @@ Tree node template is bound to template model of the following structure:
   isLeaf: false,   // true if node does not have children
   isFirst: false,  // true if node is a first child
   isLast: false,   // true if node is a last child
-  opened: false,   // true if node has been toggled to opened state
   siblingsCount: 0 // count of nodes at the same level
 }
 ```
@@ -155,11 +141,11 @@ For example, the live demo above uses the following `data` object:
 ```
 
 ## Features
-- Collapsible tree re-rendering itself on outside data mutations
 - The template represents the DOM to create for the nodes
 - The `data` property specifies the model of a tree node
-- The attribute `[toggle]` can be used to toggle a node
-- State management methods making easy opening branches
+- Branches are re-rendered on external `data` mutations
+- Tree node ID system based on depth and children count
+
 
 ## Warning
 `brainy-tree` maintains node ID system based on depth and children count. Current behavior is mutating data

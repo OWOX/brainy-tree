@@ -6,15 +6,12 @@
 `brainy-tree` is a Polymer 1.x data tree web component.
 
 This is a fork of [nuxeo-tree](https://www.webcomponents.org/element/nuxeo/nuxeo-ui-elements/nuxeo-tree)
-with some changes related to handling external data mutations, and some useful methods regarding
-common UX patterns like adding and deleting nodes.
+with a lot of changes regarding common UX patterns like adding and deleting nodes.
 
 ### Features
-- Collapsible tree re-rendering itself on outside data mutations
 - The template represents the DOM to create for the nodes
 - The `data` property specifies the model of a tree node
-- The attribute `[toggle]` can be used to toggle a node
-- State management methods making easy opening branches
+- Branches are re-rendered on external `data` mutations
 - Tree node ID system based on depth and children count
 
 ### Template model
@@ -27,7 +24,6 @@ Tree node template is bound to template model of the following structure:
   isLeaf: false,   // true if node does not have children
   isFirst: false,  // true if node is a first child
   isLast: false,   // true if node is a last child
-  opened: false,   // true if node has been toggled to opened state
   siblingsCount: 0 // count of nodes at the same level
 }
 ```
@@ -62,12 +58,6 @@ The following code would render the tree:
 ```html
 <brainy-tree data="[[data]]">
   <template>
-    <template is="dom-if" if="[[!opened]]">
-      <iron-icon icon="hardware:keyboard-arrow-right" toggle></iron-icon>
-    </template>
-    <template is="dom-if" if="[[opened]]">
-      <iron-icon icon="hardware:keyboard-arrow-down" toggle></iron-icon>
-    </template>
     <span select>My name is: [[item.name]]</span>
     <span>Am I a leaf? [[isLeaf]]</span>
   </template>
@@ -96,7 +86,7 @@ The following code would render the tree:
     (function() {
       'use strict';
 
-      var DELIMITER = '_';
+      Brainy.Tree.DELIMITER = '_';
       Brainy.Tree.ROOT_ID = '0';
 
       /**
@@ -109,7 +99,8 @@ The following code would render the tree:
        * @param {?string} index - an index to start from
        */
       function indexData(data, index) {
-        index = index || Brainy.Tree.ROOT_ID;
+        var config = Brainy.Tree;
+        index = index || config.ROOT_ID;
         data.id = index;
         var ci;
         var i;
@@ -118,7 +109,7 @@ The following code would render the tree:
         if (children) {
           for (i = 0; i < children.length; i++) {
             ci = i + 1;
-            j = index === Brainy.Tree.ROOT_ID ? ci.toString() : index + DELIMITER + ci;
+            j = index === config.ROOT_ID ? ci.toString() : index + config.DELIMITER + ci;
             data.children[i].id = j;
             indexData(data.children[i], j);
           }
@@ -176,16 +167,14 @@ The following code would render the tree:
          * @param {object} change - an object describing `data` mutations
          */
         _initialize: function(change) {
-          var state = this.saveOpenedState();
           var path = change.path;
-
-          if (path === 'data') {
-            // index whole tree once it is set
+          if (path === 'data' && change.base) {
             if (!this._indexed && change.base) {
               this._indexed = true;
               this.data = this._prepareData(change.base);
+              return;
             }
-
+            this._indexed = false;
             this._template = Polymer.dom(this).querySelector('template');
             if (this._root) {
               Polymer.dom(this).removeChild(this._root);
@@ -193,14 +182,12 @@ The following code would render the tree:
             this._root = document.createElement('brainy-tree-node');
             this._root.dataHost = this.dataHost;
             this._root._template = this._template;
-            this._root.data = this.data;
-            this._root.hasChildren = Boolean(this.data.children.length);
             this._root.dataset.id = Brainy.Tree.ROOT_ID;
+            this._root.data = change.base;
+            this._root.hasChildren = Boolean(change.base.children.length);
             this._root.tree = this;
             Polymer.dom(this).appendChild(this._root);
-            this._root.open().then(function() {
-              this.restoreOpenedState(state);
-            }.bind(this));
+            this._render();
             Polymer.dom.flush();
           } else if (path.indexOf('splices') === path.length - 7) {
             // strip splices from path
@@ -210,7 +197,26 @@ The following code would render the tree:
             this.set(parentPath, patch);
             var node = this.getDomNodeById(parent.id);
             node.set('data', patch);
+          } else if (!change.base) {
+            this._root.remove();
           }
+        },
+
+        _renderDeep: function(node) {
+          node.render().then(function(container) {
+            var c$ = container.children;
+            if (c$) {
+              for (var i = 0; i < c$.length; i++) {
+                if (c$[i].data.children) {
+                  this._renderDeep(c$[i]);
+                }
+              }
+            }
+          }.bind(this));
+        },
+
+        _render: function() {
+          this._renderDeep(this._root);
         },
 
         _itemChanged: function(e) {
@@ -222,42 +228,6 @@ The following code would render the tree:
           var result = JSON.parse(JSON.stringify(data));
           indexData(result, id);
           return result;
-        },
-
-        /**
-         * Opens a tree branch up to node with a given ID.
-         *
-         * @param {string} id - a node ID
-         */
-        openBranch: function(id) {
-          var arr = id.split(DELIMITER);
-          var len = arr.length;
-          var n;
-          var stack = [];
-          for (var i = len; i >= 0; i--) {
-            n = arr.slice(0, len - i).join(DELIMITER);
-            if (n) {
-              stack.push(n);
-            }
-          }
-          this._openNodes(stack);
-        },
-
-        /**
-         * Recursively opens a set of nodes.
-         *
-         * @param {Array<string>} ids - an array of IDs to open
-         */
-        _openNodes: function(ids) {
-          if (!ids || ids.length === 0) {
-            return;
-          }
-          var node = this.getDomNodeById(ids[0]);
-          if (node) {
-            node.open().then(function() {
-              this._openNodes(Array.prototype.slice.call(ids, 1));
-            }.bind(this));
-          }
         },
 
         /**
@@ -288,12 +258,13 @@ The following code would render the tree:
          */
         getParentNodeById: function(id) {
           var parent;
-          var arr = id.split(DELIMITER);
+          var config = Brainy.Tree;
+          var arr = id.split(config.DELIMITER);
           var len = arr.length;
           // check for root node
-          if (id !== Brainy.Tree.ROOT_ID) {
-            var parentId = len > 1 ? arr.slice(0, len - 1).join(DELIMITER) : Brainy.Tree.ROOT_ID;
-            parent = parentId === 0 ? this.data : this.getNodeById(parentId);
+          if (id !== config.ROOT_ID) {
+            var parentId = len > 1 ? arr.slice(0, len - 1).join(config.DELIMITER) : config.ROOT_ID;
+            parent = parentId === config.ROOT_ID ? this.data : this.getNodeById(parentId);
           }
           return parent;
         },
@@ -324,8 +295,9 @@ The following code would render the tree:
          * @return {string} - an ID
          */
         getNextChildId: function(node) {
+          var config = Brainy.Tree;
           var len = node.children ? node.children.length + 1 : 1;
-          return node.id === Brainy.Tree.ROOT_ID ? len.toString() : node.id + DELIMITER + len;
+          return node.id === config.ROOT_ID ? len.toString() : node.id + config.DELIMITER + len;
         },
 
         /**
@@ -337,15 +309,16 @@ The following code would render the tree:
          */
         getPathForNode: function(root, node) {
           // fail if root property name is not passed
+          var config = Brainy.Tree;
           if (!root) {
             return null;
           }
-          var id = node ? node.id : Brainy.Tree.ROOT_ID;
+          var id = node ? node.id : config.ROOT_ID;
           var path = '';
           var result;
-          if (id !== Brainy.Tree.ROOT_ID) {
+          if (id !== config.ROOT_ID) {
             path = id
-              .split(DELIMITER)
+              .split(config.DELIMITER)
               .map(function(n) {
                 return Number(n) - 1;
               })
@@ -353,30 +326,6 @@ The following code would render the tree:
           }
           result = path ? root + '.children.' + path : root;
           return result + '.children';
-        },
-
-        /**
-         * Constructs array of currently opened node ID's.
-         * Doing this on `detached` would allow to store state, e. g. in localStorage.
-         *
-         * @return {Array<string>} - an array of IDs to save
-         */
-        saveOpenedState: function() {
-          return Array.prototype.slice.call(this.querySelectorAll('brainy-tree-node')).reduce(function(list, node) {
-            if (node.opened) {
-              list.push(node.dataset.id);
-            }
-            return list;
-          }, []);
-        },
-
-        /**
-         * Restore tree state from array of node ID's.
-         *
-         * @param {Array<string>} state - an array of IDs to restore
-         */
-        restoreOpenedState: function(state) {
-          this._openNodes(state);
         }
       });
     })();

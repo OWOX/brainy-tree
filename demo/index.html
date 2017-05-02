@@ -34,15 +34,6 @@
         <template is="dom-bind">
           <brainy-tree data="{{data}}">
             <template>
-              <!-- do not show expand icon for leaf nodes -->
-              <span hidden$="[[isLeaf]]">
-                <template is="dom-if" if="[[!opened]]">
-                  <iron-icon icon="hardware:keyboard-arrow-right" toggle></iron-icon>
-                </template>
-                <template is="dom-if" if="[[opened]]">
-                  <iron-icon icon="hardware:keyboard-arrow-down" toggle></iron-icon>
-                </template>
-              </span>
               <span>[[prefix]] [[item.id]]:</span>
               <b>[[item.name]]</b>
               <!-- do not show remove icon for root node -->
@@ -80,9 +71,6 @@
                   name: 'child of ' + node.name,
                   children: []
                 });
-
-                // open node
-                tree.openBranch(id);
               };
               scope._onDeleteTap = function(e) {
                 // get ID of tree node from where event was fired
