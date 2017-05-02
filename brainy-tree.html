@@ -197,6 +197,7 @@ The following code would render the tree:
             this.set(parentPath, patch);
             var node = this.getDomNodeById(parent.id);
             node.set('data', patch);
+            this._renderDeep(node);
           } else if (!change.base) {
             this._root.remove();
           }
