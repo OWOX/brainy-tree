@@ -1,0 +1,323 @@
+<link rel="import" href="../polymer/polymer.html">
+
+<link rel="import" href="brainy-tree-node.html">
+
+<!--
+`brainy-tree` is a Polymer 1.x data tree web component.
+
+This is a fork of [nuxeo-tree](https://www.webcomponents.org/element/nuxeo/nuxeo-ui-elements/nuxeo-tree)
+with a lot of changes regarding common UX patterns like adding and deleting nodes.
+
+### Features
+- The template represents the DOM to create for the nodes
+- The `data` property specifies the model of a tree node
+- Branches are re-rendered on external `data` mutations
+- Tree node ID system based on depth and children count
+
+### Template model
+
+Tree node template is bound to template model of the following structure:
+```js
+{
+  item: {},        // data for given node
+  isRoot: false,   // true if node is a tree root
+  isLeaf: false,   // true if node does not have children
+  isFirst: false,  // true if node is a first child
+  isLast: false,   // true if node is a last child
+  siblingsCount: 0 // count of nodes at the same level
+}
+```
+
+For example, given the following `data` object:
+
+#### data.json
+```json
+{
+  "name": "root",
+  "children": [
+    {
+      "name": "a",
+      "children": [
+        {
+          "name": "c",
+          "children": [
+            { "name": "foo" },
+            { "name": "bar", "children": [{ "name": "baz" }] }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "b",
+      "children": [{ "name": "bee" }]
+    }
+  ]
+}
+```
+The following code would render the tree:
+```html
+<brainy-tree data="[[data]]">
+  <template>
+    <span select>My name is: [[item.name]]</span>
+    <span>Am I a leaf? [[isLeaf]]</span>
+  </template>
+</brainy-tree>
+```
+
+@group Brainy Elements
+@element brainy-tree
+@demo demo/index.html
+-->
+<dom-module id="brainy-tree">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+
+    <content></content>
+
+  </template>
+  <script>
+    var Brainy = window.Brainy || {};
+    Brainy.Tree = Brainy.Tree || {};
+
+    (function() {
+      'use strict';
+
+      Brainy.Tree.DELIMITER = '_';
+      Brainy.Tree.ROOT_ID = '0';
+
+      /**
+       * Recursively walks through tree nodes ans sets IDs.
+       * Root node ID is 0. For child nodes, ID is based:
+       *  - current depth (not including root node's children)
+       *  - index of a given node in it's parent `children` array
+       *
+       * @param {object} data - a data to process
+       * @param {?string} index - an index to start from
+       */
+      function indexData(data, index) {
+        var config = Brainy.Tree;
+        index = index || config.ROOT_ID;
+        data.id = index;
+        var ci;
+        var i;
+        var j;
+        var children = data.children;
+        if (children) {
+          for (i = 0; i < children.length; i++) {
+            ci = i + 1;
+            j = index === config.ROOT_ID ? ci.toString() : index + config.DELIMITER + ci;
+            data.children[i].id = j;
+            indexData(data.children[i], j);
+          }
+        }
+      }
+
+      /**
+       * Recursively walks through tree nodes ans finds node with a given ID.
+       *
+       * @param {object} node - a node to start from
+       * @param {string} id - an ID to search
+       * @return {?object} - a node with a given ID
+       */
+      function searchTree(node, id) {
+        var children = node.children;
+        if (node.id === id) {
+          return node;
+        } else if (children && children.length) {
+          var i;
+          var result = null;
+          for (i = 0; result === null && i < children.length; i++) {
+            result = searchTree(children[i], id);
+          }
+          return result;
+        }
+        return null;
+      }
+
+      Polymer({
+        is: 'brainy-tree',
+
+        properties: {
+          data: {
+            type: Object,
+            notify: true
+          },
+          _indexed: {
+            type: Boolean,
+            value: false
+          },
+          _template: Object
+        },
+
+        observers: [
+          '_initialize(data.*)'
+        ],
+
+        listeners: {
+          'item-changed': '_itemChanged'
+        },
+
+        /**
+         * Initializes the tree whenever the data changes.
+         *
+         * @param {object} change - an object describing `data` mutations
+         */
+        _initialize: function(change) {
+          var path = change.path;
+          if (path === 'data' && change.base) {
+            if (!this._indexed && change.base) {
+              this._indexed = true;
+              this.data = this._prepareData(change.base);
+              return;
+            }
+            this._indexed = false;
+            this._template = Polymer.dom(this).querySelector('template');
+            if (this._root) {
+              Polymer.dom(this).removeChild(this._root);
+            }
+            this._root = document.createElement('brainy-tree-node');
+            this._root.dataHost = this.dataHost;
+            this._root._template = this._template;
+            this._root.dataset.id = Brainy.Tree.ROOT_ID;
+            this._root.data = change.base;
+            this._root.hasChildren = Boolean(change.base.children.length);
+            this._root.tree = this;
+            Polymer.dom(this).appendChild(this._root);
+            this.renderDeep(this._root);
+            Polymer.dom.flush();
+          } else if (path.indexOf('splices') === path.length - 7) {
+            // strip splices from path
+            var parentPath = path.replace('.children.splices', '');
+            var parent = this.get(parentPath);
+            var patch = this._prepareData(parent, parent.id);
+            this.set(parentPath, patch);
+            var node = this.getDomNodeById(parent.id);
+            node.set('data', patch);
+            this.renderDeep(node);
+          } else if (!change.base) {
+            this._root.remove();
+          }
+        },
+
+        /**
+         * Renders a SOM node and its children.
+         *
+         * @param {HTMLElement} node - a DOM node to render.
+         */
+        renderDeep: function(node) {
+          node.render().then(function(container) {
+            var c$ = container.children;
+            if (c$) {
+              for (var i = 0; i < c$.length; i++) {
+                if (c$[i].data.children) {
+                  this.renderDeep(c$[i]);
+                }
+              }
+            }
+          }.bind(this));
+        },
+
+        _itemChanged: function(e) {
+          var item = e.detail;
+          this.set(item.path, item.value);
+        },
+
+        _prepareData: function(data, id) {
+          var result = JSON.parse(JSON.stringify(data));
+          indexData(result, id);
+          return result;
+        },
+
+        /**
+         * Finds a DOM element by node ID.
+         *
+         * @param {string} id - a node ID
+         * @return {HTMLElement} - a node having given ID
+         */
+        getDomNodeById: function(id) {
+          return this.querySelector('[data-id="' + id + '"]');
+        },
+
+        /**
+         * Finds a tree node by ID.
+         *
+         * @param {string} id - a node ID
+         * @return {object} - a node having given ID
+         */
+        getNodeById: function(id) {
+          return searchTree(this.data, id);
+        },
+
+        /**
+         * Finds a parent tree node by node ID.
+         *
+         * @param {string} id - a node ID
+         * @return {object} - a node having given ID
+         */
+        getParentNodeById: function(id) {
+          var parent;
+          var config = Brainy.Tree;
+          var arr = id.split(config.DELIMITER);
+          var len = arr.length;
+          // check for root node
+          if (id !== config.ROOT_ID) {
+            var parentId = len > 1 ? arr.slice(0, len - 1).join(config.DELIMITER) : config.ROOT_ID;
+            parent = parentId === config.ROOT_ID ? this.data : this.getNodeById(parentId);
+          }
+          return parent;
+        },
+
+        /**
+         * Finds an index of a given node in it's parent `children` array.
+         *
+         * @param {object} parent - a parent node object
+         * @param {string} id - a node ID
+         * @return {number} - an index
+         */
+        getChildIndexById: function(parent, id) {
+          var children = parent.children;
+          if (children && children.length) {
+            for (var i = 0; i < children.length; i++) {
+              if (children[i].id === id) {
+                return i;
+              }
+            }
+            return -1;
+          }
+        },
+
+        /**
+         * Constructs a path to `children` for a given tree node.
+         *
+         * @param {string} root - a name of property being bound to `data`
+         * @param {object} node - a node object
+         * @return {?string} - a path which can be used to call `splice` method.
+         */
+        getPathForNode: function(root, node) {
+          // fail if root property name is not passed
+          var config = Brainy.Tree;
+          if (!root) {
+            return null;
+          }
+          var id = node ? node.id : config.ROOT_ID;
+          var path = '';
+          var result;
+          if (id !== config.ROOT_ID) {
+            path = id
+              .split(config.DELIMITER)
+              .map(function(n) {
+                return Number(n) - 1;
+              })
+              .join('.children.');
+          }
+          result = path ? root + '.children.' + path : root;
+          return result + '.children';
+        }
+      });
+    })();
+  </script>
+</dom-module>
