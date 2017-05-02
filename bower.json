@@ -24,7 +24,7 @@
     "tests"
   ],
   "dependencies": {
-    "polymer": "^1.4.0",
+    "polymer": "^1.4.0"
   },
   "devDependencies": {
     "webcomponentsjs": "^0.7.20",
